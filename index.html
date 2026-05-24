@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Workboard Pro — ระบบจัดการงาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root[data-theme="light"]{
+  --bg:#f5f7fb;--surface:#fff;--surface-2:#f8fafc;--surface-glass:rgba(255,255,255,0.7);
+  --ink:#0f172a;--ink-2:#334155;--ink-3:#64748b;--ink-4:#94a3b8;
+  --line:#e2e8f0;--line-soft:#f1f5f9;
+  --blue:#3b82f6;--blue-soft:#dbeafe;--blue-deep:#1e40af;
+  --green:#10b981;--green-soft:#d1fae5;--green-deep:#065f46;
+  --red:#ef4444;--red-soft:#fee2e2;--red-deep:#991b1b;
+  --amber:#f59e0b;--amber-soft:#fef3c7;
+  --purple:#8b5cf6;--purple-soft:#ede9fe;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 4px 12px rgba(15,23,42,.06),0 2px 4px rgba(15,23,42,.04);
+  --shadow-lg:0 12px 32px rgba(15,23,42,.10),0 4px 8px rgba(15,23,42,.05);
+  --bg-grad-1:rgba(59,130,246,.06);--bg-grad-2:rgba(139,92,246,.05);
+}
+:root[data-theme="dark"]{
+  --bg:#0a0e1a;--surface:#141927;--surface-2:#1a1f2e;--surface-glass:rgba(20,25,39,0.6);
+  --ink:#f1f5f9;--ink-2:#cbd5e1;--ink-3:#94a3b8;--ink-4:#64748b;
+  --line:#2a3142;--line-soft:#1f2535;
+  --blue:#60a5fa;--blue-soft:rgba(59,130,246,.15);--blue-deep:#93c5fd;
+  --green:#34d399;--green-soft:rgba(16,185,129,.15);--green-deep:#6ee7b7;
+  --red:#f87171;--red-soft:rgba(239,68,68,.15);--red-deep:#fca5a5;
+  --amber:#fbbf24;--amber-soft:rgba(245,158,11,.15);
+  --purple:#a78bfa;--purple-soft:rgba(139,92,246,.15);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.2);
+  --shadow-md:0 4px 12px rgba(0,0,0,.3),0 2px 4px rgba(0,0,0,.2);
+  --shadow-lg:0 12px 32px rgba(0,0,0,.4),0 4px 8px rgba(0,0,0,.3);
+  --bg-grad-1:rgba(59,130,246,.12);--bg-grad-2:rgba(139,92,246,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--r:12px;--rl:16px}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'Sarabun',sans-serif;line-height:1.55;min-height:100vh;
+  -webkit-font-smoothing:antialiased;transition:background .3s ease,color .3s ease;
+  background-image:radial-gradient(circle at 15% 0%,var(--bg-grad-1) 0%,transparent 35%),radial-gradient(circle at 95% 100%,var(--bg-grad-2) 0%,transparent 35%);
+  background-attachment:fixed;
+}
+.app{max-width:1400px;margin:0 auto;padding:24px 24px 80px}
+
+/* LOADING */
+.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:999;transition:opacity .4s ease}
+.loading-screen.hide{opacity:0;pointer-events:none}
+.loader{width:44px;height:44px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-screen p{color:var(--ink-3);font-size:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--surface);padding:12px 24px;border-radius:100px;font-size:14px;font-weight:500;box-shadow:var(--shadow-lg);transition:transform .3s cubic-bezier(.4,0,.2,1);z-index:400;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* GLASS */
+.glass{background:var(--surface-glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line)}
+
+/* HEADER */
+header.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-logo{width:44px;height:44px;background:linear-gradient(135deg,var(--blue) 0%,var(--purple) 100%);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;box-shadow:var(--shadow-md)}
+.brand-text h1{font-family:'Manrope',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em}
+.brand-text .tag{font-size:12px;color:var(--ink-3);font-weight:500}
+
+.top-actions{display:flex;align-items:center;gap:8px}
+.icon-btn-top{width:40px;height:40px;border-radius:10px;background:var(--surface);border:1px solid var(--line);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink-2);transition:all .2s ease;position:relative}
+.icon-btn-top:hover{background:var(--surface-2);color:var(--ink)}
+.icon-btn-top.has-alert{color:var(--red);border-color:var(--red);animation:bellShake .5s ease infinite}
+@keyframes bellShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
+.bell-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:white;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg)}
+
+.today-info{padding:8px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line);text-align:right}
+.today-info .date-big{font-weight:700;font-size:14px}
+.today-info .date-sub{font-size:11px;color:var(--ink-3)}
+
+/* KPI BENTO GRID */
+.kpi-row{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:14px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);padding:20px;box-shadow:var(--shadow-sm);cursor:pointer;transition:all .2s ease;position:relative;overflow:hidden}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--blue)}
+.kpi-label{font-size:11px;font-weight:600;color:var(--ink-3);margin-bottom:10px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.05em}
+.kpi-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.kpi-value{font-family:'Manrope',sans-serif;font-weight:800;font-size:32px;letter-spacing:-.03em;color:var(--ink);line-height:1}
+.kpi-sub{font-size:11px;color:var(--ink-3);margin-top:4px}
+.kpi-hero{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);color:white;border:none;position:relative;overflow:hidden}
+.kpi-hero::before{content:'';position:absolute;top:-50%;right:-30%;width:300px;height:300px;background:radial-gradient(circle,rgba(139,92,246,.3) 0%,transparent 70%);pointer-events:none}
+.kpi-hero .kpi-label{color:rgba(255,255,255,.7)}
+.kpi-hero .kpi-value{color:white;font-size:44px}
+.kpi-hero .kpi-sub{color:rgba(255,255,255,.6)}
+.progress-bar{margin-top:12px;height:8px;background:rgba(255,255,255,.12);border-radius:100px;overflow:hidden;position:relative}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--green) 0%,#34d399 100%);border-radius:100px;transition:width .6s cubic-bezier(.4,0,.2,1);box-shadow:0 0 12px rgba(16,185,129,.5)}
+.icon-blue{background:var(--blue-soft);color:var(--blue-deep)}
+.icon-amber{background:var(--amber-soft);color:var(--amber)}
+.icon-red{background:var(--red-soft);color:var(--red-deep)}
+.icon-green{background:var(--green-soft);color:var(--green-deep)}
+
+/* TABS */
+.tabs-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.tabs{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;box-shadow:var(--shadow-sm)}
+.tab{padding:8px 16px;background:transparent;border:none;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-3);border-radius:7px;transition:all .2s ease;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--ink)}
+.tab.active{background:var(--ink);color:var(--bg);box-shadow:var(--shadow-sm)}
+.tab .badge-num{background:var(--line-soft);color:var(--ink-3);padding:1px 7px;border-radius:100px;font-size:10px;font-weight:700}
+.tab.active .badge-num{background:rgba(255,255,255,.2);color:var(--bg)}
+
+/* SEARCH BAR */
+.search-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search-input{position:relative;display:flex;align-items:center}
+.search-input svg{position:absolute;left:12px;color:var(--ink-4);pointer-events:none}
+.search-input input{padding:9px 36px 9px 38px;background:var(--surface);border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:13px;color:var(--ink);width:240px;outline:none;transition:all .2s ease}
+.search-input input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.search-input input::placeholder{color:var(--ink-4)}
+.search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:20px;height:20px;border:none;background:var(--line-soft);border-radius:50%;cursor:pointer;color:var(--ink-3);display:flex;align-items:center;justify-content:center;padding:0}
+.search-clear:hover{background:var(--ink-4);color:white}
+.search-input input.has-value{padding-right:36px}
+.search-match-info{font-size:11px;color:var(--ink-3);padding:6px 12px;background:var(--blue-soft);color:var(--blue-deep);border-radius:8px;font-weight:600;display:none}
+.search-match-info.show{display:inline-flex;align-items:center;gap:6px}
+.filter-btn{padding:9px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink-2);display:inline-flex;align-items:center;gap:6px;transition:all .2s ease}
+.filter-btn:hover{border-color:var(--blue);color:var(--blue)}
+.filter-btn.active{background:var(--blue);color:white;border-color:var(--blue)}
+
+/* VIEWS */
+.view{display:none}
+.view.active{display:block;animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* COMPOSER */
+.composer{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);padding:20px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.composer-title{font-weight:700;font-size:14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;color:var(--ink)}
+.composer-title .dot{width:8px;height:8px;border-radius:50%;background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.composer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:12px;align-items:end}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:var(--ink-2)}
+.field input,.field select,.field textarea{background:var(--surface-2);border:1px solid var(--line);padding:9px 12px;font-family:inherit;font-size:13px;color:var(--ink);border-radius:8px;outline:none;transition:all .15s ease;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.field input::placeholder{color:var(--ink-4)}
+.field textarea{resize:vertical;min-height:60px;font-family:inherit}
+
+.btn{background:var(--ink);color:var(--bg);border:none;padding:9px 18px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border-radius:8px;transition:all .15s ease;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--shadow-sm)}
+.btn:hover{background:var(--blue);color:white;transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.ghost{background:var(--surface);color:var(--ink-2);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--ink);transform:none}
+.btn.primary{background:var(--blue);color:white}
+.btn.primary:hover{background:var(--blue-deep)}
+.btn.sm{padding:6px 12px;font-size:12px}
+
+/* TASK SECTION */
+.section{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm)}
+.section-header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.section-header h2{font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px;color:var(--ink)}
+.section-header .dot{width:10px;height:10px;border-radius:50%}
+.dot.todo{background:var(--blue);box-shadow:0 0 6px var(--blue)}
+.dot.overdue{background:var(--red);box-shadow:0 0 6px var(--red)}
+.dot.done{background:var(--green);box-shadow:0 0 6px var(--green)}
+.count-chip{background:var(--surface);border:1px solid var(--line);padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;color:var(--ink-3)}
+
+/* TASK ROW */
+.task-row{padding:14px 18px;border-bottom:1px solid var(--line-soft);display:grid;grid-template-columns:28px 1fr auto;gap:12px;transition:all .15s ease;align-items:start}
+.task-row:last-child{border-bottom:none}
+.task-row:hover{background:var(--surface-2)}
+.check{width:22px;height:22px;border:2px solid var(--ink-4);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s ease;margin-top:1px}
+.check:hover{border-color:var(--blue);transform:scale(1.05)}
+.check.checked{background:var(--green);border-color:var(--green);box-shadow:0 0 12px rgba(16,185,129,.4)}
+.check.checked::after{content:'';width:10px;height:5px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translate(1px,-1px)}
+.task-content{min-width:0;cursor:pointer}
+.task-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.task-title{font-size:14px;font-weight:600;color:var(--ink);flex:1;min-width:160px}
+.task-row.done .task-title{text-decoration:line-through;color:var(--ink-4)}
+.task-row.done .task-meta{opacity:.7}
+.priority-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:100px;white-space:nowrap}
+.priority-high{background:var(--red-soft);color:var(--red)}
+.priority-medium{background:var(--amber-soft);color:var(--amber)}
+.priority-low{background:var(--blue-soft);color:var(--blue)}
+.task-meta{display:flex;gap:12px;font-size:11px;color:var(--ink-3);flex-wrap:wrap;align-items:center}
+.meta-chip{display:inline-flex;align-items:center;gap:5px}
+.meta-chip svg{flex-shrink:0}
+.meta-chip.overdue-chip{color:var(--red);font-weight:600}
+.meta-chip .meta-label{color:var(--ink-4)}
+.tag-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--purple-soft);color:var(--purple);white-space:nowrap}
+.submitto-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--blue-soft);color:var(--blue)}
+.docref-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;background:var(--purple-soft);color:var(--purple)}
+
+.task-actions{display:flex;gap:2px;flex-shrink:0}
+.icon-btn{width:28px;height:28px;border:none;background:transparent;cursor:pointer;color:var(--ink-4);display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all .15s ease}
+.icon-btn:hover{background:var(--line-soft);color:var(--ink)}
+.icon-btn.danger-btn:hover{background:var(--red-soft);color:var(--red)}
+.icon-btn.edit-btn:hover{background:var(--blue-soft);color:var(--blue)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--ink-4);font-size:13px}
+.empty .empty-icon{width:48px;height:48px;background:var(--surface-2);border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center}
+
+/* KANBAN */
+.kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-height:400px}
+.kanban-col{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--rl);padding:14px;display:flex;flex-direction:column}
+.kanban-col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.kanban-col-header h3{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.kanban-col-header .count-chip{font-size:10px;padding:2px 8px}
+.kanban-cards{display:flex;flex-direction:column;gap:8px;flex:1;min-height:100px}
+.kanban-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;cursor:grab;transition:all .15s ease;box-shadow:var(--shadow-sm)}
+.kanban-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);border-color:var(--blue)}
+.kanban-card:active{cursor:grabbing}
+.kanban-card.dragging{opacity:.4;transform:scale(.97)}
+.kanban-card-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;line-height:1.4}
+.kanban-card-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:10px;color:var(--ink-3)}
+.kanban-col.drag-over{background:var(--blue-soft);border-color:var(--blue);border-style:dashed}
+
+/* CALENDAR */
+.cal-shell{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);box-shadow:var(--shadow-sm);overflow:hidden}
+.cal-header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:12px}
+.cal-title{font-family:'Manrope',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--ink)}
+.cal-nav{display:flex;gap:6px;align-items:center}
+.cal-nav button{width:34px;height:34px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;cursor:pointer;color:var(--ink-2);display:flex;align-items:center;justify-content:center;transition:all .15s ease;font-family:inherit;font-weight:600;font-size:16px}
+.cal-nav button:hover{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cal-nav button.today-btn{width:auto;padding:0 14px;font-size:12px}
+.legend{display:flex;gap:16px;padding:12px 22px;background:var(--surface-2);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-2);font-weight:500}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+.legend-dot.assign{background:var(--blue)}
+.legend-dot.due{background:var(--red)}
+.legend-dot.meeting{background:var(--green)}
+.weekdays-row{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface-2);border-bottom:1px solid var(--line)}
+.weekday-cell{padding:10px 6px;text-align:center;font-size:11px;font-weight:700;color:var(--ink-3);letter-spacing:.05em}
+.weekday-cell.weekend{color:var(--ink-4)}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.day-cell{min-height:100px;padding:8px;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);cursor:pointer;transition:background .15s ease;background:var(--surface)}
+.day-cell:nth-child(7n){border-right:none}
+.day-cell:hover{background:var(--surface-2)}
+.day-cell.other-month{opacity:.4;background:var(--surface-2)}
+.day-cell.today{background:linear-gradient(135deg,rgba(59,130,246,.08) 0%,rgba(139,92,246,.05) 100%)}
+.day-num{font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;border-radius:8px;color:var(--ink)}
+.day-cell.today .day-num{background:var(--ink);color:var(--bg);font-weight:700}
+.day-cell.weekend .day-num{color:var(--ink-3)}
+.day-dots{display:flex;gap:3px;flex-wrap:wrap}
+.event-circle{width:10px;height:10px;border-radius:50%}
+.event-circle.assign{background:var(--blue)}
+.event-circle.due{background:var(--red)}
+.event-circle.meeting{background:var(--green)}
+.day-preview{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.preview-item{font-size:10px;padding:2px 6px;border-radius:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.preview-item.assign{background:var(--blue-soft);color:var(--blue)}
+.preview-item.due{background:var(--red-soft);color:var(--red)}
+.preview-item.meeting{background:var(--green-soft);color:var(--green)}
+.preview-more{font-size:9px;color:var(--ink-4);padding:1px 6px;font-weight:600}
+
+/* CHARTS PAGE */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);padding:20px;box-shadow:var(--shadow-sm)}
+.chart-card h3{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.chart-container{position:relative;height:280px}
+.export-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+
+/* MODAL */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.backdrop.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:popIn .25s ease}
+@keyframes popIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-head{padding:20px 24px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid var(--line)}
+.modal-head h3{font-family:'Manrope',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink)}
+.modal-head .modal-sub{font-size:12px;color:var(--ink-3);margin-top:2px}
+.modal-close{width:32px;height:32px;border:none;background:var(--surface-2);border-radius:8px;cursor:pointer;color:var(--ink-3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-close:hover{background:var(--line);color:var(--ink)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:var(--surface-2)}
+.form-grid{display:grid;gap:12px}
+.form-grid.cols-2{grid-template-columns:1fr 1fr}
+
+/* TAB MINI */
+.tab-mini{display:inline-flex;background:var(--surface-2);border-radius:8px;padding:3px;margin-bottom:14px;border:1px solid var(--line)}
+.tab-mini button{padding:6px 12px;border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink-3);border-radius:6px}
+.tab-mini button.active{background:var(--ink);color:var(--bg)}
+
+/* DAY LIST */
+.day-list{margin-top:20px;padding-top:20px;border-top:1px solid var(--line)}
+.day-list h4{font-size:12px;font-weight:700;color:var(--ink-3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em}
+.day-item{padding:10px 12px;border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--surface-2);border-left:3px solid var(--blue)}
+.day-item.due{border-left-color:var(--red)}
+.day-item.meeting{border-left-color:var(--green)}
+.day-item.assign{border-left-color:var(--blue)}
+.day-item-info{flex:1;min-width:0}
+.day-item-title{font-size:13px;font-weight:600;color:var(--ink)}
+.day-item-meta{font-size:11px;color:var(--ink-3);margin-top:2px}
+.item-type-label{font-size:9px;font-weight:700;padding:2px 6px;border-radius:100px;text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+.type-assign{background:var(--blue-soft);color:var(--blue)}
+.type-due{background:var(--red-soft);color:var(--red)}
+.type-meeting{background:var(--green-soft);color:var(--green)}
+
+/* DONE POPUP */
+.done-popup-icon{width:52px;height:52px;background:var(--green-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--green)}
+.done-popup-title{font-family:'Manrope',sans-serif;font-weight:800;font-size:18px;text-align:center;margin-bottom:4px;color:var(--ink)}
+.task-ref{font-size:12px;color:var(--ink-3);text-align:center;margin-bottom:18px;padding:10px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--line);font-style:italic}
+
+/* NOTIF PANEL */
+.notif-panel{position:fixed;top:76px;right:24px;width:360px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);box-shadow:var(--shadow-lg);z-index:290;display:none;overflow:hidden}
+.notif-panel.show{display:block;animation:popIn .2s ease}
+.notif-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:var(--surface-2)}
+.notif-head h4{font-weight:700;font-size:14px;color:var(--ink)}
+.notif-clear{font-size:12px;color:var(--blue);cursor:pointer;font-weight:600;background:none;border:none;font-family:inherit}
+.notif-list{max-height:380px;overflow-y:auto}
+.notif-item{padding:12px 18px;border-bottom:1px solid var(--line-soft);display:flex;gap:10px;align-items:flex-start}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:var(--surface-2)}
+.notif-item.unread{background:var(--red-soft)}
+.notif-icon-n{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.notif-icon-n.urgent{background:var(--red-soft);color:var(--red)}
+.notif-icon-n.warn{background:var(--amber-soft);color:var(--amber)}
+.notif-icon-n.meeting{background:var(--green-soft);color:var(--green)}
+.notif-body{flex:1;min-width:0}
+.notif-title{font-size:12px;font-weight:600;color:var(--ink)}
+.notif-sub{font-size:11px;color:var(--ink-3);margin-top:1px}
+.notif-time{font-size:10px;color:var(--ink-4);margin-top:3px;font-family:monospace}
+.notif-empty{text-align:center;padding:32px 20px;color:var(--ink-4);font-size:12px}
+
+/* KPI MODAL */
+.kpi-detail-row{padding:14px 20px;border-bottom:1px solid var(--line-soft);display:grid;grid-template-columns:22px 1fr;gap:12px;align-items:start;cursor:pointer;transition:background .15s}
+.kpi-detail-row:last-child{border-bottom:none}
+.kpi-detail-row:hover{background:var(--surface-2)}
+.kpi-detail-check{width:18px;height:18px;border-radius:50%;border:2px solid var(--ink-4);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.kpi-detail-check.done-check{background:var(--green);border-color:var(--green)}
+.kpi-detail-check.done-check::after{content:'';width:8px;height:4px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translate(1px,-1px)}
+.kpi-detail-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:5px}
+.kpi-detail-title.struck{text-decoration:line-through;color:var(--ink-4)}
+.kpi-detail-tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--ink-3)}
+.done-stamp{display:inline-flex;align-items:center;gap:4px;background:var(--green-soft);color:var(--green-deep);padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700}
+
+/* FILTER PANEL */
+.filter-panel{display:none;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--rl);margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.filter-panel.show{display:block;animation:slideIn .25s ease}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-chip{padding:5px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:100px;font-size:12px;cursor:pointer;color:var(--ink-2);font-weight:500;transition:all .15s}
+.filter-chip:hover{border-color:var(--blue);color:var(--blue)}
+.filter-chip.active{background:var(--blue);color:white;border-color:var(--blue)}
+.filter-label{font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+
+select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%2364748b' fill='none' stroke-width='1.5' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px!important}
+
+/* RESPONSIVE */
+@media(max-width:1100px){
+  .kpi-row{grid-template-columns:1fr 1fr 1fr}
+  .kanban-board{grid-template-columns:1fr}
+  .charts-grid{grid-template-columns:1fr}
+  .composer-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .app{padding:16px 14px 60px}
+  .composer-grid{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .kpi-hero{grid-column:span 2}
+  .day-cell{min-height:66px;padding:5px}
+  .day-num{font-size:12px;height:22px;min-width:22px}
+  .preview-item{display:none}
+  .form-grid.cols-2{grid-template-columns:1fr}
+  .search-input input{width:100%}
+  .search-bar{width:100%}
+  .search-input{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="loading-screen" id="loadingScreen"><div class="loader"></div><p>กำลังโหลดข้อมูล...</p></div>
+<div class="toast" id="toast"></div>
+
+<!-- NOTIF PANEL -->
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-head">
+    <h4>🔔 การแจ้งเตือน</h4>
+    <button class="notif-clear" id="clearNotif">ล้างทั้งหมด</button>
+  </div>
+  <div class="notif-list" id="notifList">
+    <div class="notif-empty">ยังไม่มีการแจ้งเตือน</div>
+  </div>
+</div>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>Workboard Pro</h1>
+        <div class="tag">ระบบจัดการงานและปฏิทินนัดหมาย</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="today-info">
+        <div class="date-big" id="todayDate">—</div>
+        <div class="date-sub" id="todayWeek">—</div>
+      </div>
+      <button class="icon-btn-top" id="themeBtn" title="สลับธีม">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+      <button class="icon-btn-top" id="bellBtn" title="การแจ้งเตือน">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi-card kpi-hero" id="kpiCardHero">
+      <div class="kpi-label"><span class="kpi-icon" style="background:rgba(255,255,255,.12);color:white"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg></span>อัตราความสำเร็จ</div>
+      <div class="kpi-value"><span id="kpiPercent">0</span>%</div>
+      <div class="kpi-sub" id="kpiSub">เสร็จ 0 จาก 0 งาน</div>
+      <div class="progress-bar"><div class="progress-bar-fill" id="kpiBar" style="width:0%"></div></div>
+    </div>
+    <div class="kpi-card" id="kpiCardAll"><div class="kpi-label"><span class="kpi-icon icon-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>งานทั้งหมด</div><div class="kpi-value" id="kpiTotal">0</div><div class="kpi-sub">รายการ</div></div>
+    <div class="kpi-card" id="kpiCardActive"><div class="kpi-label"><span class="kpi-icon icon-amber"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>กำลังทำ</div><div class="kpi-value" id="kpiActive">0</div><div class="kpi-sub">ในระบบ</div></div>
+    <div class="kpi-card" id="kpiCardOverdue"><div class="kpi-label"><span class="kpi-icon icon-red"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></span>คงค้าง</div><div class="kpi-value" id="kpiOverdue">0</div><div class="kpi-sub">เกินกำหนด</div></div>
+    <div class="kpi-card" id="kpiCardDone"><div class="kpi-label"><span class="kpi-icon icon-green"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></span>เสร็จสิ้น</div><div class="kpi-value" style="color:var(--green)" id="kpiDone">0</div><div class="kpi-sub">เรียบร้อย</div></div>
+  </div>
+
+  <!-- TABS + SEARCH -->
+  <div class="tabs-row">
+    <div class="tabs">
+      <button class="tab active" data-view="tasks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>งาน <span class="badge-num" id="tabTasks">0</span></button>
+      <button class="tab" data-view="kanban"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="6" height="18"/><rect x="15" y="3" width="6" height="12"/></svg>Kanban</button>
+      <button class="tab" data-view="calendar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>ปฏิทิน</button>
+      <button class="tab" data-view="charts"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg>วิเคราะห์</button>
+    </div>
+    <div class="search-bar">
+      <div class="search-input">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" placeholder="ค้นหา (พิมพ์คำใดก็ได้)..." />
+        <button class="search-clear" id="searchClear" title="ล้าง" style="display:none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <button class="btn primary sm" id="searchBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        ค้นหา
+      </button>
+      <button class="filter-btn" id="filterBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        ตัวกรอง
+      </button>
+    </div>
+  </div>
+
+  <!-- FILTER PANEL -->
+  <div class="filter-panel" id="filterPanel">
+    <div class="filter-row" style="margin-bottom:8px">
+      <span class="filter-label">ความสำคัญ:</span>
+      <button class="filter-chip active" data-filter="priority" data-value="all">ทั้งหมด</button>
+      <button class="filter-chip" data-filter="priority" data-value="high">สูง</button>
+      <button class="filter-chip" data-filter="priority" data-value="medium">ปานกลาง</button>
+      <button class="filter-chip" data-filter="priority" data-value="low">ต่ำ</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">สถานะ:</span>
+      <button class="filter-chip active" data-filter="status" data-value="all">ทั้งหมด</button>
+      <button class="filter-chip" data-filter="status" data-value="active">กำลังทำ</button>
+      <button class="filter-chip" data-filter="status" data-value="overdue">คงค้าง</button>
+      <button class="filter-chip" data-filter="status" data-value="done">เสร็จแล้ว</button>
+    </div>
+  </div>
+
+  <!-- TASKS VIEW -->
+  <section class="view active" id="view-tasks">
+    <div class="composer">
+      <div class="composer-title"><span class="dot"></span>เพิ่มงานใหม่</div>
+      <div class="composer-grid">
+        <div class="field"><label>หัวข้องาน *</label><input type="text" id="taskTitle" placeholder="เช่น จัดทำรายงานประจำเดือน"/></div>
+        <div class="field"><label>ผู้สั่งงาน</label><input type="text" id="taskAssigner" placeholder="ชื่อผู้สั่ง"/></div>
+        <div class="field"><label>วันที่สั่ง</label><input type="date" id="taskAssignDate"/></div>
+        <div class="field"><label>กำหนดเสร็จ</label><input type="date" id="taskDueDate"/></div>
+        <div class="field"><label>ความสำคัญ</label><select id="taskPriority"><option value="low">ต่ำ</option><option value="medium" selected>กลาง</option><option value="high">สูง</option></select></div>
+        <button class="btn primary" id="addTaskBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>เพิ่ม</button>
+      </div>
+    </div>
+    <div id="taskSections"></div>
+  </section>
+
+  <!-- KANBAN VIEW -->
+  <section class="view" id="view-kanban">
+    <div class="kanban-board">
+      <div class="kanban-col" data-col="todo">
+        <div class="kanban-col-header">
+          <h3><span class="dot todo"></span>งานที่ต้องทำ</h3>
+          <span class="count-chip" id="kbActiveCount">0</span>
+        </div>
+        <div class="kanban-cards" id="kbActiveCards"></div>
+      </div>
+      <div class="kanban-col" data-col="overdue">
+        <div class="kanban-col-header">
+          <h3><span class="dot overdue"></span>คงค้าง</h3>
+          <span class="count-chip" id="kbOverdueCount">0</span>
+        </div>
+        <div class="kanban-cards" id="kbOverdueCards"></div>
+      </div>
+      <div class="kanban-col" data-col="done">
+        <div class="kanban-col-header">
+          <h3><span class="dot done"></span>เสร็จสิ้น</h3>
+          <span class="count-chip" id="kbDoneCount">0</span>
+        </div>
+        <div class="kanban-cards" id="kbDoneCards"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALENDAR VIEW -->
+  <section class="view" id="view-calendar">
+    <div class="cal-shell">
+      <div class="cal-header">
+        <div class="cal-title" id="calLabel">—</div>
+        <div class="cal-nav">
+          <button id="prevM">&#8249;</button>
+          <button id="todayM" class="today-btn">วันนี้</button>
+          <button id="nextM">&#8250;</button>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot assign"></span>วันสั่งงาน</div>
+        <div class="legend-item"><span class="legend-dot due"></span>วันกำหนดเสร็จ</div>
+        <div class="legend-item"><span class="legend-dot meeting"></span>นัดประชุม</div>
+      </div>
+      <div class="weekdays-row">
+        <div class="weekday-cell weekend">อา</div><div class="weekday-cell">จ</div><div class="weekday-cell">อ</div><div class="weekday-cell">พ</div><div class="weekday-cell">พฤ</div><div class="weekday-cell">ศ</div><div class="weekday-cell weekend">ส</div>
+      </div>
+      <div class="days-grid" id="calDays"></div>
+    </div>
+  </section>
+
+  <!-- CHARTS VIEW -->
+  <section class="view" id="view-charts">
+    <div class="export-row">
+      <button class="btn primary" id="exportXlsxBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export Excel
+      </button>
+      <button class="btn ghost" id="exportCsvBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        Export CSV
+      </button>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>📊 สัดส่วนงานตามสถานะ</h3>
+        <div class="chart-container"><canvas id="chartStatus"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>🎯 สัดส่วนตามความสำคัญ</h3>
+        <div class="chart-container"><canvas id="chartPriority"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>📈 งานเสร็จต่อวัน (30 วันล่าสุด)</h3>
+        <div class="chart-container"><canvas id="chartDaily"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>👤 งานที่สั่ง (Top 5 ผู้สั่งงาน)</h3>
+        <div class="chart-container"><canvas id="chartAssigner"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- DAY MODAL -->
+<div class="backdrop" id="dayModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3 id="modalDate">—</h3><div class="modal-sub" id="modalDateSub">—</div></div>
+      <button class="modal-close" id="closeModal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="tab-mini">
+        <button class="active" data-add="meeting">+ นัดประชุม</button>
+        <button data-add="task">+ งาน</button>
+      </div>
+      <div id="meetingForm">
+        <div class="form-grid">
+          <div class="field"><label>หัวข้อนัดหมาย</label><input type="text" id="mTitle" placeholder="เช่น ประชุมสรุปโครงการ"/></div>
+          <div class="form-grid cols-2"><div class="field"><label>เวลา</label><input type="time" id="mTime"/></div><div class="field"><label>สถานที่</label><input type="text" id="mPlace" placeholder="(ไม่บังคับ)"/></div></div>
+          <div class="field"><label>หมายเหตุ</label><input type="text" id="mNote" placeholder="(ไม่บังคับ)"/></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn ghost" data-close-modal>ปิด</button><button class="btn primary" id="saveMeeting">บันทึก</button></div>
+      </div>
+      <div id="taskForm" style="display:none">
+        <div class="form-grid">
+          <div class="field"><label>หัวข้องาน</label><input type="text" id="qtTitle" placeholder="หัวข้องาน"/></div>
+          <div class="form-grid cols-2"><div class="field"><label>ผู้สั่งงาน</label><input type="text" id="qtAssigner" placeholder="(ไม่บังคับ)"/></div><div class="field"><label>ความสำคัญ</label><select id="qtPriority"><option value="low">ต่ำ</option><option value="medium" selected>กลาง</option><option value="high">สูง</option></select></div></div>
+          <div class="field"><label>วันที่เลือก คือ</label><select id="qtDateType"><option value="due">วันกำหนดเสร็จ</option><option value="assign">วันที่สั่งงาน</option></select></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn ghost" data-close-modal>ปิด</button><button class="btn primary" id="saveQuickTask">บันทึก</button></div>
+      </div>
+      <div class="day-list" id="dayList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT TASK MODAL -->
+<div class="backdrop" id="editModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>แก้ไขงาน</h3><div class="modal-sub">อัปเดตข้อมูลงาน</div></div>
+      <button class="modal-close" id="closeEditModal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field"><label>หัวข้องาน *</label><input type="text" id="editTitle"/></div>
+        <div class="form-grid cols-2">
+          <div class="field"><label>ผู้สั่งงาน</label><input type="text" id="editAssigner"/></div>
+          <div class="field"><label>ความสำคัญ</label><select id="editPriority"><option value="low">ต่ำ</option><option value="medium">กลาง</option><option value="high">สูง</option></select></div>
+        </div>
+        <div class="form-grid cols-2">
+          <div class="field"><label>วันที่สั่งงาน</label><input type="date" id="editAssignDate"/></div>
+          <div class="field"><label>วันกำหนดเสร็จ</label><input type="date" id="editDueDate"/></div>
+        </div>
+        <div class="field"><label>หมายเหตุเพิ่มเติม</label><textarea id="editNote" placeholder="(ไม่บังคับ)"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" id="cancelEditBtn">ยกเลิก</button>
+      <button class="btn primary" id="saveEditBtn">บันทึกการแก้ไข</button>
+    </div>
+  </div>
+</div>
+
+<!-- DONE POPUP -->
+<div class="backdrop" id="donePopup">
+  <div class="modal">
+    <div class="modal-body" style="padding:24px">
+      <div class="done-popup-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+      </div>
+      <div class="done-popup-title">บันทึกงานเสร็จสิ้น</div>
+      <div class="task-ref" id="donePopupTitle">—</div>
+      <div class="form-grid">
+        <div class="field"><label>ส่งงานให้ใคร</label><input type="text" id="doneSubmitTo" placeholder="ชื่อผู้รับงาน / หน่วยงาน"/></div>
+        <div class="field"><label>เลขที่เอกสาร / ตามบันทึก</label><input type="text" id="doneDocRef" placeholder="เช่น บข.001/2569"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" id="cancelDoneBtn">ยกเลิก</button>
+      <button class="btn primary" id="confirmDoneBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ยืนยันเสร็จสิ้น</button>
+    </div>
+  </div>
+</div>
+
+<!-- KPI MODAL -->
+<div class="backdrop" id="kpiModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-head">
+      <button class="modal-close" id="kpiModalBack" style="margin-right:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg></button>
+      <div style="flex:1"><h3 id="kpiModalTitle">รายการ</h3></div>
+      <span class="count-chip" id="kpiModalCount">0</span>
+    </div>
+    <div class="modal-body" id="kpiModalBody" style="padding:0"></div>
+    <div class="modal-footer">
+      <button class="btn ghost" id="kpiModalClose">กลับหน้าแรก</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,addDoc,deleteDoc,doc,onSnapshot,query,orderBy,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSyCA8wYAFS033ve9S_i7sO7TnIAbT8u9A5Y",
+  authDomain:"my-job-farm.firebaseapp.com",
+  projectId:"my-job-farm",
+  storageBucket:"my-job-farm.firebasestorage.app",
+  messagingSenderId:"633412954439",
+  appId:"1:633412954439:web:6b973107d6331d5f248462",
+  measurementId:"G-KVP63G8CWT"
+};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+
+// ============ STATE ============
+let tasks=[],meetings=[];
+let currentMonth=new Date().getMonth(),currentYear=new Date().getFullYear(),selectedDate=null;
+let pendingDoneId=null,editingId=null;
+let searchTerm='';
+let filters={priority:'all',status:'all'};
+let chartInstances={};
+let draggedTaskId=null;
+
+const TM=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TMS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TD=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+const todayStr=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const dateStr=(y,m,d)=>`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+const fmtDate=(d,s)=>{if(!d)return'';const dt=new Date(d+'T00:00:00');return`${dt.getDate()} ${s?TMS[dt.getMonth()]:TM[dt.getMonth()]} ${(dt.getFullYear()+543).toString().slice(-2)}`};
+const isOverdue=t=>!t.done&&t.dueDate&&t.dueDate<todayStr();
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+// ============ THEME ============
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme',theme);
+  localStorage.setItem('wb_theme',theme);
+  const icon=document.getElementById('themeIcon');
+  if(theme==='dark'){
+    icon.innerHTML='<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+  }else{
+    icon.innerHTML='<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+  }
+  if(document.querySelector('.view.active')?.id==='view-charts') setTimeout(()=>renderCharts(),100);
+}
+const savedTheme=localStorage.getItem('wb_theme')||'light';
+applyTheme(savedTheme);
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  applyTheme(cur==='dark'?'light':'dark');
+});
+
+// ============ FIRESTORE LISTENERS ============
+onSnapshot(query(collection(db,'tasks'),orderBy('created','desc')),snap=>{
+  tasks=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderAll();
+  document.getElementById('loadingScreen').classList.add('hide');
+});
+onSnapshot(query(collection(db,'meetings'),orderBy('date')),snap=>{
+  meetings=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderCalendar();
+  if(selectedDate)renderDayList(selectedDate);
+});
+
+// ============ TASK CRUD ============
+async function addTask(){
+  const title=document.getElementById('taskTitle').value.trim();
+  if(!title){document.getElementById('taskTitle').focus();return}
+  const btn=document.getElementById('addTaskBtn');btn.disabled=true;
+  try{
+    await addDoc(collection(db,'tasks'),{
+      title,
+      assigner:document.getElementById('taskAssigner').value.trim()||null,
+      assignDate:document.getElementById('taskAssignDate').value||todayStr(),
+      dueDate:document.getElementById('taskDueDate').value||null,
+      priority:document.getElementById('taskPriority').value,
+      done:false,doneAt:null,note:null,created:Date.now()
+    });
+    ['taskTitle','taskAssigner','taskDueDate'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('taskPriority').value='medium';
+    toast('เพิ่มงานแล้ว ✓');
+  }catch(e){toast('เกิดข้อผิดพลาด')}
+  btn.disabled=false;
+}
+
+async function toggleTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  if(!t.done){openDonePopup(id);}
+  else{await updateDoc(doc(db,'tasks',id),{done:false,doneAt:null,submittedTo:null,docRef:null});toast('ยกเลิกสถานะเสร็จสิ้น')}
+}
+
+function openDonePopup(id){
+  pendingDoneId=id;
+  const t=tasks.find(x=>x.id===id);
+  document.getElementById('donePopupTitle').textContent=t?t.title:'';
+  document.getElementById('doneSubmitTo').value='';
+  document.getElementById('doneDocRef').value='';
+  document.getElementById('donePopup').classList.add('show');
+  setTimeout(()=>document.getElementById('doneSubmitTo').focus(),100);
+}
+function closeDonePopup(){document.getElementById('donePopup').classList.remove('show');pendingDoneId=null}
+async function confirmDone(){
+  if(!pendingDoneId)return;
+  await updateDoc(doc(db,'tasks',pendingDoneId),{
+    done:true,doneAt:Date.now(),
+    submittedTo:document.getElementById('doneSubmitTo').value.trim()||null,
+    docRef:document.getElementById('doneDocRef').value.trim()||null
+  });
+  closeDonePopup();
+  toast('บันทึกงานเสร็จสิ้นแล้ว ✓');
+}
+
+async function deleteTask(id){
+  if(!confirm('ลบงานนี้?'))return;
+  await deleteDoc(doc(db,'tasks',id));
+  toast('ลบงานแล้ว');
+}
+
+// EDIT TASK
+function openEditModal(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  editingId=id;
+  document.getElementById('editTitle').value=t.title||'';
+  document.getElementById('editAssigner').value=t.assigner||'';
+  document.getElementById('editPriority').value=t.priority||'medium';
+  document.getElementById('editAssignDate').value=t.assignDate||'';
+  document.getElementById('editDueDate').value=t.dueDate||'';
+  document.getElementById('editNote').value=t.note||'';
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('show');editingId=null}
+async function saveEdit(){
+  if(!editingId)return;
+  const title=document.getElementById('editTitle').value.trim();
+  if(!title){document.getElementById('editTitle').focus();return}
+  await updateDoc(doc(db,'tasks',editingId),{
+    title,
+    assigner:document.getElementById('editAssigner').value.trim()||null,
+    priority:document.getElementById('editPriority').value,
+    assignDate:document.getElementById('editAssignDate').value||null,
+    dueDate:document.getElementById('editDueDate').value||null,
+    note:document.getElementById('editNote').value.trim()||null
+  });
+  closeEditModal();
+  toast('บันทึกการแก้ไขแล้ว ✓');
+}
+
+// ============ MEETING CRUD ============
+async function addMeeting(){
+  const title=document.getElementById('mTitle').value.trim();
+  if(!title||!selectedDate){document.getElementById('mTitle').focus();return}
+  await addDoc(collection(db,'meetings'),{
+    date:selectedDate,title,
+    time:document.getElementById('mTime').value||null,
+    place:document.getElementById('mPlace').value.trim()||null,
+    note:document.getElementById('mNote').value.trim()||null
+  });
+  ['mTitle','mTime','mPlace','mNote'].forEach(id=>document.getElementById(id).value='');
+  toast('บันทึกนัดหมายแล้ว ✓');
+}
+async function addQuickTask(){
+  const title=document.getElementById('qtTitle').value.trim();
+  if(!title||!selectedDate){document.getElementById('qtTitle').focus();return}
+  const dt=document.getElementById('qtDateType').value;
+  await addDoc(collection(db,'tasks'),{
+    title,
+    assigner:document.getElementById('qtAssigner').value.trim()||null,
+    assignDate:dt==='assign'?selectedDate:todayStr(),
+    dueDate:dt==='due'?selectedDate:null,
+    priority:document.getElementById('qtPriority').value,
+    done:false,doneAt:null,note:null,created:Date.now()
+  });
+  ['qtTitle','qtAssigner'].forEach(id=>document.getElementById(id).value='');
+  toast('เพิ่มงานแล้ว ✓');
+}
+async function deleteMeeting(id){await deleteDoc(doc(db,'meetings',id));toast('ลบนัดหมายแล้ว')}
+
+// ============ FILTER & SEARCH ============
+function getFilteredTasks(){
+  return tasks.filter(t=>{
+    if(searchTerm){
+      const haystack=[t.title,t.assigner,t.docRef,t.submittedTo,t.note].filter(Boolean).join(' ').toLowerCase();
+      // Split search by whitespace - match if ANY word found
+      const words=searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+      const anyMatch=words.some(w=>haystack.includes(w));
+      if(!anyMatch)return false;
+    }
+    if(filters.priority!=='all'&&t.priority!==filters.priority)return false;
+    if(filters.status!=='all'){
+      if(filters.status==='done'&&!t.done)return false;
+      if(filters.status==='active'&&(t.done||isOverdue(t)))return false;
+      if(filters.status==='overdue'&&!isOverdue(t))return false;
+    }
+    return true;
+  });
+}
+
+// ============ RENDER TASKS ============
+function renderAll(){
+  renderTasks();
+  renderKanban();
+  renderCalendar();
+  updateKpi();
+  if(document.querySelector('.view.active')?.id==='view-charts') renderCharts();
+}
+
+function updateKpi(){
+  const active=tasks.filter(t=>!t.done&&!isOverdue(t)).length;
+  const overdue=tasks.filter(t=>isOverdue(t)).length;
+  const done=tasks.filter(t=>t.done).length;
+  const total=tasks.length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('kpiTotal').textContent=total;
+  document.getElementById('kpiActive').textContent=active;
+  document.getElementById('kpiOverdue').textContent=overdue;
+  document.getElementById('kpiDone').textContent=done;
+  document.getElementById('kpiPercent').textContent=pct;
+  document.getElementById('kpiBar').style.width=pct+'%';
+  document.getElementById('kpiSub').textContent=`เสร็จ ${done} จาก ${total} งาน`;
+  document.getElementById('tabTasks').textContent=total-done;
+}
+
+function renderTasks(){
+  const filtered=getFilteredTasks();
+  const active=filtered.filter(t=>!t.done&&!isOverdue(t));
+  const overdue=filtered.filter(t=>isOverdue(t));
+  const done=filtered.filter(t=>t.done);
+
+  const sections=document.getElementById('taskSections');
+  sections.innerHTML=`
+    <div class="section"><div class="section-header"><h2><span class="dot todo"></span>งานที่ต้องทำ</h2><span class="count-chip">${active.length} งาน</span></div>
+      <div>${active.length?active.map(taskHTML).join(''):emptyHTML('ยังไม่มีงานที่ต้องทำ')}</div></div>
+    <div class="section"><div class="section-header"><h2><span class="dot overdue"></span>งานคงค้าง</h2><span class="count-chip">${overdue.length} งาน</span></div>
+      <div>${overdue.length?overdue.map(taskHTML).join(''):emptyHTML('ไม่มีงานคงค้าง')}</div></div>
+    <div class="section"><div class="section-header"><h2><span class="dot done"></span>งานแล้วเสร็จ</h2><span class="count-chip">${done.length} งาน</span></div>
+      <div>${done.length?done.map(taskHTML).join(''):emptyHTML('ยังไม่มีงานที่เสร็จ')}</div></div>
+  `;
+  bindTaskEvents(sections);
+}
+
+function emptyHTML(msg){
+  return `<div class="empty"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--ink-4)"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>${msg}</div>`;
+}
+
+function taskHTML(t){
+  const ov=isOverdue(t);
+  const pl={high:'สำคัญสูง',medium:'ปานกลาง',low:'ต่ำ'};
+  return `<div class="task-row ${t.done?'done':''}">
+    <div class="check ${t.done?'checked':''}" data-toggle="${t.id}"></div>
+    <div class="task-content" data-edit="${t.id}">
+      <div class="task-top">
+        <div class="task-title">${esc(t.title)}</div>
+        <span class="priority-badge priority-${t.priority}">${pl[t.priority]}</span>
+      </div>
+      <div class="task-meta">
+        ${t.assigner?`<span class="meta-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="meta-label">ผู้สั่ง:</span>${esc(t.assigner)}</span>`:''}
+        ${t.assignDate?`<span class="meta-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg><span class="meta-label">สั่ง:</span>${fmtDate(t.assignDate,true)}</span>`:''}
+        ${t.dueDate?`<span class="meta-chip ${ov?'overdue-chip':''}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${ov?'#ef4444':'#10b981'}" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg><span class="meta-label">กำหนด:</span>${fmtDate(t.dueDate,true)}${ov?` · เลย ${Math.floor((new Date(todayStr())-new Date(t.dueDate))/86400000)} วัน`:''}</span>`:''}
+        ${t.done&&t.doneAt?`<span class="meta-chip" style="color:var(--green)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>เสร็จ ${fmtDate(new Date(t.doneAt).toISOString().slice(0,10),true)}</span>`:''}
+        ${t.submittedTo?`<span class="submitto-badge">📤 ${esc(t.submittedTo)}</span>`:''}
+        ${t.docRef?`<span class="docref-badge">📄 ${esc(t.docRef)}</span>`:''}
+      </div>
+    </div>
+    <div class="task-actions">
+      <button class="icon-btn edit-btn" data-edit-btn="${t.id}" title="แก้ไข"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="icon-btn danger-btn" data-del="${t.id}" title="ลบ"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>
+    </div>
+  </div>`;
+}
+
+function bindTaskEvents(container){
+  container.querySelectorAll('[data-toggle]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();toggleTask(el.dataset.toggle)}));
+  container.querySelectorAll('[data-del]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();deleteTask(el.dataset.del)}));
+  container.querySelectorAll('[data-edit-btn]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();openEditModal(el.dataset.editBtn)}));
+  container.querySelectorAll('[data-edit]').forEach(el=>el.addEventListener('click',e=>{if(!e.target.closest('.task-actions')&&!e.target.closest('.check'))openEditModal(el.dataset.edit)}));
+}
+
+// ============ KANBAN ============
+function renderKanban(){
+  const filtered=getFilteredTasks();
+  const active=filtered.filter(t=>!t.done&&!isOverdue(t));
+  const overdue=filtered.filter(t=>isOverdue(t));
+  const done=filtered.filter(t=>t.done);
+  document.getElementById('kbActiveCount').textContent=active.length;
+  document.getElementById('kbOverdueCount').textContent=overdue.length;
+  document.getElementById('kbDoneCount').textContent=done.length;
+  document.getElementById('kbActiveCards').innerHTML=active.length?active.map(kanbanCardHTML).join(''):'<div class="empty" style="padding:20px;font-size:11px">ไม่มีงาน</div>';
+  document.getElementById('kbOverdueCards').innerHTML=overdue.length?overdue.map(kanbanCardHTML).join(''):'<div class="empty" style="padding:20px;font-size:11px">ไม่มีงาน</div>';
+  document.getElementById('kbDoneCards').innerHTML=done.length?done.map(kanbanCardHTML).join(''):'<div class="empty" style="padding:20px;font-size:11px">ไม่มีงาน</div>';
+  bindKanbanEvents();
+}
+
+function kanbanCardHTML(t){
+  const pl={high:'สูง',medium:'กลาง',low:'ต่ำ'};
+  return `<div class="kanban-card" draggable="true" data-task="${t.id}">
+    <div class="kanban-card-title">${esc(t.title)}</div>
+    <div class="kanban-card-meta">
+      <span class="priority-badge priority-${t.priority}">${pl[t.priority]}</span>
+      ${t.dueDate?`<span>📅 ${fmtDate(t.dueDate,true)}</span>`:''}
+      ${t.assigner?`<span>👤 ${esc(t.assigner)}</span>`:''}
+    </div>
+  </div>`;
+}
+
+function bindKanbanEvents(){
+  document.querySelectorAll('.kanban-card').forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      draggedTaskId=card.dataset.task;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+    card.addEventListener('click',()=>openEditModal(card.dataset.task));
+  });
+  document.querySelectorAll('.kanban-col').forEach(col=>{
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag-over')});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',async e=>{
+      e.preventDefault();col.classList.remove('drag-over');
+      if(!draggedTaskId)return;
+      const t=tasks.find(x=>x.id===draggedTaskId);if(!t)return;
+      const target=col.dataset.col;
+      if(target==='done'&&!t.done){openDonePopup(draggedTaskId);}
+      else if(target==='todo'&&t.done){await updateDoc(doc(db,'tasks',draggedTaskId),{done:false,doneAt:null,submittedTo:null,docRef:null});toast('ย้ายกลับเป็นกำลังทำ')}
+      else if(target==='overdue'&&!t.done){
+        // Move to overdue = set due date to yesterday
+        const yest=new Date();yest.setDate(yest.getDate()-1);
+        await updateDoc(doc(db,'tasks',draggedTaskId),{dueDate:dateStr(yest.getFullYear(),yest.getMonth(),yest.getDate())});
+        toast('ย้ายเป็นคงค้างแล้ว');
+      }
+      draggedTaskId=null;
+    });
+  });
+}
+
+// ============ CALENDAR ============
+function renderCalendar(){
+  document.getElementById('calLabel').textContent=`${TM[currentMonth]} ${currentYear+543}`;
+  const first=new Date(currentYear,currentMonth,1),last=new Date(currentYear,currentMonth+1,0),startDay=first.getDay(),today=todayStr();
+  const cells=[];
+  const prevLast=new Date(currentYear,currentMonth,0).getDate();
+  for(let i=startDay-1;i>=0;i--){const d=prevLast-i,mo=currentMonth===0?11:currentMonth-1,yr=currentMonth===0?currentYear-1:currentYear;cells.push({day:d,other:true,ds:dateStr(yr,mo,d),dow:0})}
+  for(let d=1;d<=last.getDate();d++){const ds=dateStr(currentYear,currentMonth,d);cells.push({day:d,other:false,ds,isToday:ds===today,dow:new Date(currentYear,currentMonth,d).getDay()})}
+  const rem=(7-(cells.length%7))%7;
+  for(let d=1;d<=rem;d++){const mo=currentMonth===11?0:currentMonth+1,yr=currentMonth===11?currentYear+1:currentYear;cells.push({day:d,other:true,ds:dateStr(yr,mo,d),dow:0})}
+  document.getElementById('calDays').innerHTML=cells.map(c=>{
+    const isWE=c.dow===0||c.dow===6;
+    const dots=[tasks.some(t=>t.assignDate===c.ds)?'<div class="event-circle assign"></div>':'',tasks.some(t=>t.dueDate===c.ds)?'<div class="event-circle due"></div>':'',meetings.some(m=>m.date===c.ds)?'<div class="event-circle meeting"></div>':''].filter(Boolean).join('');
+    const pi=[];tasks.filter(t=>t.dueDate===c.ds).forEach(t=>pi.push({type:'due',title:t.title}));meetings.filter(m=>m.date===c.ds).forEach(m=>pi.push({type:'meeting',title:m.title}));tasks.filter(t=>t.assignDate===c.ds&&t.dueDate!==c.ds).forEach(t=>pi.push({type:'assign',title:t.title}));
+    const shown=pi.slice(0,2),more=pi.length-shown.length;
+    const ph=shown.map(p=>`<div class="preview-item ${p.type}">${esc(p.title)}</div>`).join('')+(more>0?`<div class="preview-more">+${more}</div>`:'');
+    return`<div class="day-cell ${c.other?'other-month':''} ${c.isToday?'today':''} ${isWE?'weekend':''}" data-date="${c.ds}"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:4px"><span class="day-num">${c.day}</span><div class="day-dots">${dots}</div></div><div class="day-preview">${ph}</div></div>`;
+  }).join('');
+  document.querySelectorAll('.day-cell[data-date]').forEach(el=>el.addEventListener('click',()=>openDayModal(el.dataset.date)));
+}
+
+function openDayModal(date){
+  selectedDate=date;
+  const dObj=new Date(date+'T00:00:00');
+  document.getElementById('modalDate').textContent=`${dObj.getDate()} ${TM[dObj.getMonth()]} ${dObj.getFullYear()+543}`;
+  document.getElementById('modalDateSub').textContent=`วัน${TD[dObj.getDay()]}`;
+  ['mTitle','mTime','mPlace','mNote','qtTitle','qtAssigner'].forEach(id=>document.getElementById(id).value='');
+  document.querySelectorAll('.tab-mini button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('[data-add="meeting"]').classList.add('active');
+  document.getElementById('meetingForm').style.display='';
+  document.getElementById('taskForm').style.display='none';
+  renderDayList(date);
+  document.getElementById('dayModal').classList.add('show');
+}
+function closeDayModal(){document.getElementById('dayModal').classList.remove('show');selectedDate=null}
+
+function renderDayList(date){
+  const list=document.getElementById('dayList');
+  const items=[];
+  meetings.filter(m=>m.date===date).forEach(m=>items.push({type:'meeting',id:m.id,title:m.title,meta:[m.time,m.place].filter(Boolean).join(' · ')||'ทั้งวัน',isMeeting:true}));
+  tasks.filter(t=>t.dueDate===date).forEach(t=>items.push({type:'due',id:t.id,title:t.title,meta:`กำหนดส่ง${t.assigner?' · ผู้สั่ง: '+t.assigner:''}`}));
+  tasks.filter(t=>t.assignDate===date&&t.dueDate!==date).forEach(t=>items.push({type:'assign',id:t.id,title:t.title,meta:`สั่งงาน${t.assigner?' · โดย '+t.assigner:''}`}));
+  const tl={meeting:'ประชุม',due:'กำหนดเสร็จ',assign:'สั่งงาน'};
+  list.innerHTML='<h4>กิจกรรมในวันนี้</h4>'+(items.length?items.map(it=>`<div class="day-item ${it.type}"><div class="day-item-info"><div class="day-item-title"><span class="item-type-label type-${it.type}">${tl[it.type]}</span>${esc(it.title)}</div><div class="day-item-meta">${esc(it.meta)}</div></div>${it.isMeeting?`<button class="icon-btn danger-btn" data-del-meet="${it.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg></button>`:''}</div>`).join(''):'<div class="empty" style="padding:18px 0">ยังไม่มีรายการ</div>');
+  list.querySelectorAll('[data-del-meet]').forEach(el=>el.addEventListener('click',()=>deleteMeeting(el.dataset.delMeet)));
+}
+
+// ============ CHARTS ============
+function getChartColors(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  return{
+    text:isDark?'#cbd5e1':'#334155',
+    grid:isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.06)',
+    palette:['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899']
+  };
+}
+
+function renderCharts(){
+  Object.values(chartInstances).forEach(c=>{try{c.destroy()}catch(e){}});
+  chartInstances={};
+  const c=getChartColors();
+  Chart.defaults.color=c.text;
+  Chart.defaults.font.family="'Sarabun',sans-serif";
+
+  // Status pie
+  const active=tasks.filter(t=>!t.done&&!isOverdue(t)).length;
+  const overdue=tasks.filter(t=>isOverdue(t)).length;
+  const done=tasks.filter(t=>t.done).length;
+  chartInstances.status=new Chart(document.getElementById('chartStatus'),{
+    type:'doughnut',
+    data:{labels:['กำลังทำ','คงค้าง','เสร็จสิ้น'],datasets:[{data:[active,overdue,done],backgroundColor:['#3b82f6','#ef4444','#10b981'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+  });
+
+  // Priority pie
+  const high=tasks.filter(t=>t.priority==='high').length;
+  const med=tasks.filter(t=>t.priority==='medium').length;
+  const low=tasks.filter(t=>t.priority==='low').length;
+  chartInstances.priority=new Chart(document.getElementById('chartPriority'),{
+    type:'doughnut',
+    data:{labels:['สูง','กลาง','ต่ำ'],datasets:[{data:[high,med,low],backgroundColor:['#ef4444','#f59e0b','#3b82f6'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+  });
+
+  // Daily completion (30 days)
+  const days=[];const counts=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=dateStr(d.getFullYear(),d.getMonth(),d.getDate());
+    days.push(`${d.getDate()}/${d.getMonth()+1}`);
+    counts.push(tasks.filter(t=>{
+      if(!t.done||!t.doneAt)return false;
+      const dd=new Date(t.doneAt);
+      return dateStr(dd.getFullYear(),dd.getMonth(),dd.getDate())===ds;
+    }).length);
+  }
+  chartInstances.daily=new Chart(document.getElementById('chartDaily'),{
+    type:'line',
+    data:{labels:days,datasets:[{label:'งานเสร็จ',data:counts,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',fill:true,tension:0.35,borderWidth:2.5,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:c.grid},ticks:{stepSize:1}},x:{grid:{display:false}}}}
+  });
+
+  // Top assigners
+  const assignerMap={};
+  tasks.forEach(t=>{if(t.assigner){assignerMap[t.assigner]=(assignerMap[t.assigner]||0)+1}});
+  const top=Object.entries(assignerMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  chartInstances.assigner=new Chart(document.getElementById('chartAssigner'),{
+    type:'bar',
+    data:{labels:top.map(x=>x[0]),datasets:[{label:'งาน',data:top.map(x=>x[1]),backgroundColor:c.palette,borderRadius:8}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:c.grid},ticks:{stepSize:1}},y:{grid:{display:false}}}}
+  });
+}
+
+// ============ EXPORT ============
+function exportToExcel(){
+  const data=tasks.map(t=>({
+    'หัวข้องาน':t.title||'',
+    'ผู้สั่งงาน':t.assigner||'',
+    'วันที่สั่ง':t.assignDate?fmtDate(t.assignDate):'',
+    'วันกำหนดเสร็จ':t.dueDate?fmtDate(t.dueDate):'',
+    'ความสำคัญ':({high:'สูง',medium:'กลาง',low:'ต่ำ'})[t.priority]||'',
+    'สถานะ':t.done?'เสร็จสิ้น':(isOverdue(t)?'คงค้าง':'กำลังทำ'),
+    'วันที่เสร็จ':t.doneAt?fmtDate(new Date(t.doneAt).toISOString().slice(0,10)):'',
+    'ส่งให้':t.submittedTo||'',
+    'เลขเอกสาร':t.docRef||'',
+    'หมายเหตุ':t.note||''
+  }));
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'งาน');
+  XLSX.writeFile(wb,`workboard-${todayStr()}.xlsx`);
+  toast('Export Excel สำเร็จ ✓');
+}
+
+function exportToCsv(){
+  const headers=['หัวข้องาน','ผู้สั่งงาน','วันที่สั่ง','วันกำหนดเสร็จ','ความสำคัญ','สถานะ','วันที่เสร็จ','ส่งให้','เลขเอกสาร'];
+  const rows=tasks.map(t=>[
+    t.title||'',t.assigner||'',t.assignDate?fmtDate(t.assignDate):'',t.dueDate?fmtDate(t.dueDate):'',
+    ({high:'สูง',medium:'กลาง',low:'ต่ำ'})[t.priority]||'',
+    t.done?'เสร็จสิ้น':(isOverdue(t)?'คงค้าง':'กำลังทำ'),
+    t.doneAt?fmtDate(new Date(t.doneAt).toISOString().slice(0,10)):'',
+    t.submittedTo||'',t.docRef||''
+  ]);
+  const csv='\uFEFF'+[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`workboard-${todayStr()}.csv`;a.click();
+  URL.revokeObjectURL(url);
+  toast('Export CSV สำเร็จ ✓');
+}
+
+// ============ KPI MODAL ============
+function openKpiModal(type){
+  const titles={all:'งานทั้งหมด',active:'กำลังดำเนินการ',overdue:'งานคงค้าง',done:'งานแล้วเสร็จ'};
+  const pl={high:'สำคัญสูง',medium:'ปานกลาง',low:'ต่ำ'};
+  let list=[];
+  if(type==='all')list=[...tasks];
+  else if(type==='active')list=tasks.filter(t=>!t.done&&!isOverdue(t));
+  else if(type==='overdue')list=tasks.filter(t=>isOverdue(t));
+  else if(type==='done')list=tasks.filter(t=>t.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+  document.getElementById('kpiModalTitle').textContent=titles[type];
+  document.getElementById('kpiModalCount').textContent=`${list.length} รายการ`;
+  const body=document.getElementById('kpiModalBody');
+  if(!list.length){
+    body.innerHTML='<div class="empty" style="padding:40px">ไม่มีรายการ</div>';
+  }else{
+    body.innerHTML=list.map(t=>{
+      const ov=isOverdue(t);
+      const dd=t.doneAt?new Date(t.doneAt).toISOString().slice(0,10):null;
+      return `<div class="kpi-detail-row" data-kpi-edit="${t.id}">
+        <div class="kpi-detail-check ${t.done?'done-check':''}" data-kpi-toggle="${t.id}"></div>
+        <div>
+          <div class="kpi-detail-title ${t.done?'struck':''}">${esc(t.title)}</div>
+          <div class="kpi-detail-tags">
+            ${t.assigner?`<span>👤 ${esc(t.assigner)}</span>`:''}
+            ${t.assignDate?`<span>🔵 ${fmtDate(t.assignDate,true)}</span>`:''}
+            ${t.dueDate?`<span style="color:${ov?'var(--red)':'var(--ink-3)'}">${ov?'⚠️':'📅'} ${fmtDate(t.dueDate,true)}${ov?` (เลย ${Math.floor((new Date(todayStr())-new Date(t.dueDate))/86400000)} วัน)`:''}</span>`:''}
+            <span class="priority-badge priority-${t.priority}" style="font-size:10px">${pl[t.priority]}</span>
+            ${dd?`<span class="done-stamp">✓ ${fmtDate(dd,true)}</span>`:''}
+            ${t.submittedTo?`<span class="submitto-badge">📤 ${esc(t.submittedTo)}</span>`:''}
+            ${t.docRef?`<span class="docref-badge">📄 ${esc(t.docRef)}</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    body.querySelectorAll('[data-kpi-toggle]').forEach(el=>el.addEventListener('click',async e=>{e.stopPropagation();await toggleTask(el.dataset.kpiToggle);setTimeout(()=>openKpiModal(type),400)}));
+    body.querySelectorAll('[data-kpi-edit]').forEach(el=>el.addEventListener('click',e=>{if(!e.target.closest('.kpi-detail-check')){closeKpiModal();openEditModal(el.dataset.kpiEdit)}}));
+  }
+  document.getElementById('kpiModal').classList.add('show');
+}
+function closeKpiModal(){document.getElementById('kpiModal').classList.remove('show')}
+
+// ============ NOTIFICATIONS ============
+let notifHistory=[];
+function loadNotifHistory(){try{notifHistory=JSON.parse(localStorage.getItem('wb_notif_history')||'[]')}catch(e){notifHistory=[]}}
+function saveNotifHistory(){if(notifHistory.length>100)notifHistory=notifHistory.slice(-100);localStorage.setItem('wb_notif_history',JSON.stringify(notifHistory))}
+function addNotif(key,title,sub,type){if(notifHistory.find(n=>n.key===key))return;notifHistory.unshift({key,title,sub,type,time:Date.now(),read:false});saveNotifHistory()}
+function checkNotifications(){
+  const today=todayStr();
+  const d1=new Date();d1.setDate(d1.getDate()+1);
+  const d3=new Date();d3.setDate(d3.getDate()+3);
+  const in1=dateStr(d1.getFullYear(),d1.getMonth(),d1.getDate());
+  const in3=dateStr(d3.getFullYear(),d3.getMonth(),d3.getDate());
+  tasks.filter(t=>!t.done&&t.dueDate).forEach(t=>{
+    if(t.dueDate===today)addNotif(`task-today-${t.id}`,`⚠️ งานถึงกำหนดวันนี้`,t.title,'urgent');
+    else if(t.dueDate===in1)addNotif(`task-1d-${t.id}`,`งานกำหนดเสร็จพรุ่งนี้`,t.title,'urgent');
+    else if(t.dueDate===in3)addNotif(`task-3d-${t.id}`,`งานกำหนดเสร็จอีก 3 วัน`,t.title,'warn');
+  });
+  meetings.forEach(m=>{
+    if(m.date===today)addNotif(`meet-today-${m.id}`,`📅 มีประชุมวันนี้${m.time?` เวลา ${m.time}`:''}`,m.title,'meeting');
+    else if(m.date===in1)addNotif(`meet-1d-${m.id}`,`ประชุมพรุ่งนี้`,m.title,'meeting');
+    else if(m.date===in3)addNotif(`meet-3d-${m.id}`,`ประชุมอีก 3 วัน`,m.title,'meeting');
+  });
+  renderBell();renderNotifPanel();
+}
+function renderBell(){
+  const unread=notifHistory.filter(n=>!n.read).length;
+  const btn=document.getElementById('bellBtn');
+  let badge=btn.querySelector('.bell-badge');
+  if(unread>0){btn.classList.add('has-alert');if(!badge){badge=document.createElement('span');badge.className='bell-badge';btn.appendChild(badge)}badge.textContent=unread>9?'9+':unread}
+  else{btn.classList.remove('has-alert');if(badge)badge.remove()}
+}
+function renderNotifPanel(){
+  const list=document.getElementById('notifList');
+  if(!notifHistory.length){list.innerHTML='<div class="notif-empty">🎉 ไม่มีการแจ้งเตือน</div>';return}
+  const iconMap={
+    urgent:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`,
+    warn:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+    meeting:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/></svg>`
+  };
+  const fmtTime=ts=>{const d=new Date(ts);return`${d.getDate()} ${TMS[d.getMonth()]} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};
+  list.innerHTML=notifHistory.map(n=>`<div class="notif-item ${n.read?'':'unread'}"><div class="notif-icon-n ${n.type}">${iconMap[n.type]||iconMap.warn}</div><div class="notif-body"><div class="notif-title">${esc(n.title)}</div><div class="notif-sub">${esc(n.sub)}</div><div class="notif-time">${fmtTime(n.time)}</div></div></div>`).join('');
+}
+function markAllRead(){notifHistory.forEach(n=>n.read=true);saveNotifHistory();renderBell();renderNotifPanel()}
+
+// ============ UI BINDINGS ============
+const now=new Date();
+document.getElementById('todayDate').textContent=`${now.getDate()} ${TMS[now.getMonth()]} ${now.getFullYear()+543}`;
+document.getElementById('todayWeek').textContent=`วัน${TD[now.getDay()]}`;
+document.getElementById('taskAssignDate').value=todayStr();
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+t.dataset.view).classList.add('active');
+  if(t.dataset.view==='calendar')renderCalendar();
+  if(t.dataset.view==='kanban')renderKanban();
+  if(t.dataset.view==='charts')renderCharts();
+}));
+
+document.getElementById('addTaskBtn').addEventListener('click',addTask);
+document.getElementById('taskTitle').addEventListener('keydown',e=>{if(e.key==='Enter')addTask()});
+
+// Search & Filter
+const searchInputEl=document.getElementById('searchInput');
+const searchClearEl=document.getElementById('searchClear');
+function doSearch(){
+  searchTerm=searchInputEl.value.trim();
+  if(searchTerm){
+    searchInputEl.classList.add('has-value');
+    searchClearEl.style.display='flex';
+  }else{
+    searchInputEl.classList.remove('has-value');
+    searchClearEl.style.display='none';
+  }
+  renderTasks();renderKanban();
+  if(searchTerm){
+    const count=getFilteredTasks().length;
+    toast(`พบ ${count} รายการ`);
+  }
+}
+document.getElementById('searchBtn').addEventListener('click',doSearch);
+searchInputEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doSearch()}});
+searchInputEl.addEventListener('input',()=>{
+  // Show/hide clear button as user types
+  if(searchInputEl.value){
+    searchInputEl.classList.add('has-value');
+    searchClearEl.style.display='flex';
+  }else{
+    // If cleared empty, immediately reset
+    searchInputEl.classList.remove('has-value');
+    searchClearEl.style.display='none';
+    if(searchTerm){searchTerm='';renderTasks();renderKanban()}
+  }
+});
+searchClearEl.addEventListener('click',()=>{
+  searchInputEl.value='';
+  searchTerm='';
+  searchInputEl.classList.remove('has-value');
+  searchClearEl.style.display='none';
+  renderTasks();renderKanban();
+  searchInputEl.focus();
+});
+
+document.getElementById('filterBtn').addEventListener('click',()=>{
+  const p=document.getElementById('filterPanel');
+  p.classList.toggle('show');
+  document.getElementById('filterBtn').classList.toggle('active');
+});
+document.querySelectorAll('.filter-chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    const f=chip.dataset.filter;
+    document.querySelectorAll(`[data-filter="${f}"]`).forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    filters[f]=chip.dataset.value;
+    renderTasks();renderKanban();
+  });
+});
+
+// Calendar
+document.getElementById('prevM').addEventListener('click',()=>{if(currentMonth===0){currentMonth=11;currentYear--}else currentMonth--;renderCalendar()});
+document.getElementById('nextM').addEventListener('click',()=>{if(currentMonth===11){currentMonth=0;currentYear++}else currentMonth++;renderCalendar()});
+document.getElementById('todayM').addEventListener('click',()=>{currentMonth=new Date().getMonth();currentYear=new Date().getFullYear();renderCalendar()});
+
+// Day modal
+document.getElementById('closeModal').addEventListener('click',closeDayModal);
+document.querySelectorAll('[data-close-modal]').forEach(el=>el.addEventListener('click',closeDayModal));
+document.getElementById('dayModal').addEventListener('click',e=>{if(e.target.id==='dayModal')closeDayModal()});
+document.getElementById('saveMeeting').addEventListener('click',addMeeting);
+document.getElementById('saveQuickTask').addEventListener('click',addQuickTask);
+document.querySelectorAll('.tab-mini button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tab-mini button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  document.getElementById('meetingForm').style.display=b.dataset.add==='meeting'?'':'none';
+  document.getElementById('taskForm').style.display=b.dataset.add==='task'?'':'none';
+}));
+
+// Edit modal
+document.getElementById('closeEditModal').addEventListener('click',closeEditModal);
+document.getElementById('cancelEditBtn').addEventListener('click',closeEditModal);
+document.getElementById('saveEditBtn').addEventListener('click',saveEdit);
+document.getElementById('editModal').addEventListener('click',e=>{if(e.target.id==='editModal')closeEditModal()});
+
+// Done popup
+document.getElementById('cancelDoneBtn').addEventListener('click',closeDonePopup);
+document.getElementById('confirmDoneBtn').addEventListener('click',confirmDone);
+document.getElementById('doneSubmitTo').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('doneDocRef').focus()});
+document.getElementById('doneDocRef').addEventListener('keydown',e=>{if(e.key==='Enter')confirmDone()});
+document.getElementById('donePopup').addEventListener('click',e=>{if(e.target.id==='donePopup')closeDonePopup()});
+
+// KPI cards
+document.getElementById('kpiCardHero').addEventListener('click',()=>openKpiModal('done'));
+document.getElementById('kpiCardAll').addEventListener('click',()=>openKpiModal('all'));
+document.getElementById('kpiCardActive').addEventListener('click',()=>openKpiModal('active'));
+document.getElementById('kpiCardOverdue').addEventListener('click',()=>openKpiModal('overdue'));
+document.getElementById('kpiCardDone').addEventListener('click',()=>openKpiModal('done'));
+document.getElementById('kpiModalBack').addEventListener('click',closeKpiModal);
+document.getElementById('kpiModalClose').addEventListener('click',closeKpiModal);
+document.getElementById('kpiModal').addEventListener('click',e=>{if(e.target.id==='kpiModal')closeKpiModal()});
+
+// Export
+document.getElementById('exportXlsxBtn').addEventListener('click',exportToExcel);
+document.getElementById('exportCsvBtn').addEventListener('click',exportToCsv);
+
+// Bell
+document.getElementById('bellBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  const p=document.getElementById('notifPanel');
+  const open=p.classList.contains('show');
+  if(open){p.classList.remove('show')}
+  else{p.classList.add('show');markAllRead()}
+});
+document.addEventListener('click',e=>{
+  const p=document.getElementById('notifPanel');
+  const b=document.getElementById('bellBtn');
+  if(p.classList.contains('show')&&!p.contains(e.target)&&!b.contains(e.target))p.classList.remove('show');
+});
+document.getElementById('clearNotif').addEventListener('click',()=>{
+  notifHistory=[];saveNotifHistory();renderNotifPanel();renderBell();toast('ล้างการแจ้งเตือนแล้ว');
+});
+
+// Init
+loadNotifHistory();renderBell();renderNotifPanel();
+setTimeout(()=>checkNotifications(),2000);
+setInterval(()=>checkNotifications(),10*60*1000);
+renderCalendar();
+</script>
+</body>
+</html>
